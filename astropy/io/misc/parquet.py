@@ -613,13 +613,13 @@ def write_parquet_votable(
             if mkey in field._attr_list:
                 if (getattr(field, mkey) is None) or overwrite_metadata:
                     setattr(field, mkey, metadata[field.name][mkey])
-            else:
-                if (mkey == "description") and (
-                    (field.description is None) or overwrite_metadata
-                ):
+            elif mkey == "description":
+                if (field.description is None) or overwrite_metadata:
                     field.description = metadata[field.name]["description"]
-                else:
-                    print(f"Warning: '{mkey}' is not a valid VOT metadata key")
+            else:
+                warnings.warn(
+                    f"'{mkey}' is not a valid VOT metadata key", AstropyUserWarning
+                )
 
     # Convert the VOTable object into a Byte string to create an
     # XML that we can add to the Parquet metadata

@@ -96,6 +96,49 @@ def test_parquet_votable_input_column_unit(overwrite_metadata, tmp_path):
     assert loaded_table["sfr"].unit == u.solMass / u.yr
 
 
+@pytest.mark.parametrize("overwrite_metadata", [True, False])
+def test_parquet_votable_input_column_description(overwrite_metadata, tmp_path):
+    """Test round trip of a table that has a column description.
+
+    Regression test for #18738: an existing description must not trigger
+    a warning claiming that 'description' is not a valid metadata key.
+    """
+    filename = tmp_path / "test_votable.parq"
+
+    modified_input = copy.deepcopy(input_table)
+    modified_input["mass"].description = "Original description."
+
+    write_parquet_votable(
+        modified_input,
+        filename,
+        metadata=column_metadata,
+        overwrite_metadata=overwrite_metadata,
+    )
+
+    loaded_table = read_parquet_votable(filename)
+
+    expected = (
+        column_metadata["mass"]["description"]
+        if overwrite_metadata
+        else "Original description."
+    )
+    assert loaded_table["mass"].description == expected
+    assert loaded_table["sfr"].description == column_metadata["sfr"]["description"]
+
+
+def test_parquet_votable_invalid_metadata_key(tmp_path):
+    filename = tmp_path / "test_votable.parq"
+
+    metadata = copy.deepcopy(column_metadata)
+    for col_metadata in metadata.values():
+        col_metadata["foo"] = "bar"
+
+    with pytest.warns(
+        AstropyUserWarning, match="'foo' is not a valid VOT metadata key"
+    ):
+        write_parquet_votable(input_table, filename, metadata=metadata)
+
+
 @pytest.mark.xfail(reason="TODO fix: existing column metadata is ignored")
 def test_parquet_votable_input_column_metadata(tmp_path):
     """Test preservation of column metadata"""
