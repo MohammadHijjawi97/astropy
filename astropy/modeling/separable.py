@@ -303,6 +303,16 @@ def _separable(transform):
         transform_matrix := transform._calculate_separability_matrix()
     ) is not NotImplemented:
         return transform_matrix
+    elif isinstance(transform, CompoundModel) and transform.op == "fix_inputs":
+        # The right side is a dict mapping input names or indices of the
+        # left model to fixed values; drop the columns of the fixed inputs.
+        left = transform.left
+        fixed = {
+            left.inputs.index(key) if isinstance(key, str) else key
+            for key in transform.right
+        }
+        free = [i for i in range(left.n_inputs) if i not in fixed]
+        return _separable(left)[:, free]
     elif isinstance(transform, CompoundModel):
         sepleft = _separable(transform.left)
         sepright = _separable(transform.right)

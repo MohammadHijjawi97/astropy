@@ -191,3 +191,22 @@ def test_custom_model_separable():
 
     assert not model_c().separable
     assert np.all(separability_matrix(model_c()) == [True, True])
+
+
+@pytest.mark.parametrize("fixed", [{"x0": 0.3}, {0: 0.3}])
+def test_separable_fix_inputs(fixed):
+    # Regression test for #18523
+    model = models.fix_inputs(
+        models.Shift(1) & models.Shift(2) & models.Shift(3), fixed
+    )
+    assert_allclose(
+        separability_matrix(model),
+        np.array([[False, False], [True, False], [False, True]]),
+    )
+    assert_allclose(is_separable(model), np.array([False, True, True]))
+
+    model = models.fix_inputs(rot & sh1, {"x0": 0.3})
+    assert_allclose(
+        separability_matrix(model),
+        np.array([[True, False], [True, False], [False, True]]),
+    )
